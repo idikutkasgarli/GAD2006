@@ -20,8 +20,8 @@ ATileGameManager::ATileGameManager() :
 	GridSelection = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GridMesh"));
 	GridSelection->SetupAttachment(RootComponent);
 
-	CurrentSelectedTile = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CurrentSelectedTile"));
-	CurrentSelectedTile->SetupAttachment(GridSelection);
+	TileSelected = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CurrentSelectedTile"));
+	TileSelected->SetupAttachment(RootComponent);
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> PlaneMesh(TEXT("StaticMesh'/Engine/BasicShapes/Plane.Plane'"));
 
@@ -32,7 +32,7 @@ ATileGameManager::ATileGameManager() :
 	GridSelection->SetMaterial(0, GridMaterial.Object);
 	GridSelection->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	CurrentSelectedTile->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	TileSelected->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 }
 
@@ -44,7 +44,7 @@ void ATileGameManager::BeginPlay()
 	if (auto PlayerController = Cast<ATilePlayerController>(GWorld->GetFirstPlayerController()))
 	{
 		PlayerController->GameManager = this;
-		CurrentTile();
+		ChangedTile();
 	}
 }
 
@@ -98,7 +98,7 @@ void ATileGameManager::OnActorInteraction(AActor* HitActor, FVector& Location, b
 	{
 		CurrentTileIndex = (CurrentTileIndex + 1) % TileTypes.Num();
 		UE_LOG(LogTemp, Warning, TEXT("TileType: %s"), *TileTypes[CurrentTileIndex]->GetActorLabel());
-		CurrentTile();
+		ChangedTile();
 
 	}
 	else if (Input->WasJustPressed(EKeys::MouseScrollUp))
@@ -110,7 +110,7 @@ void ATileGameManager::OnActorInteraction(AActor* HitActor, FVector& Location, b
 
 		CurrentTileIndex = (CurrentTileIndex - 1) % TileTypes.Num();
 		UE_LOG(LogTemp, Warning, TEXT("TileType: %s"), *TileTypes[CurrentTileIndex]->GetActorLabel());
-		CurrentTile();
+		ChangedTile();
 	}
 	else if (Input->WasJustPressed(EKeys::RightMouseButton))
 	{
@@ -120,15 +120,15 @@ void ATileGameManager::OnActorInteraction(AActor* HitActor, FVector& Location, b
 	else
 	{
 		GridSelection->SetWorldLocation(GridLoc + GridOffset);
-		CurrentSelectedTile->SetWorldLocation(GridSelection->GetComponentLocation());
+		TileSelected->SetWorldLocation(GridSelection->GetComponentLocation());
 	}
 
 }
 
-void ATileGameManager::CurrentTile()
+void ATileGameManager::ChangedTile()
 {
-	CurrentSelectedTile->SetStaticMesh(TileTypes[CurrentTileIndex]->InstancedMesh->GetStaticMesh());
-	CurrentSelectedTile->SetRelativeScale3D(TileTypes[CurrentTileIndex]->InstancedMesh->GetRelativeScale3D());
+	TileSelected->SetStaticMesh(TileTypes[CurrentTileIndex]->InstancedMesh->GetStaticMesh());
+	TileSelected->SetRelativeScale3D(TileTypes[CurrentTileIndex]->InstancedMesh->GetRelativeScale3D());
 }
 
 

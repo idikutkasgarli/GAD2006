@@ -31,7 +31,7 @@ public:
 
 	void OnActorInteraction(AActor* HitActor, FVector& Location, bool IsPressed);
 
-	void CurrentTile();
+	void ChangedTile();
 
 	UPROPERTY(EditAnywhere)
 	int GridSize;
@@ -48,7 +48,7 @@ public:
 	int CurrentTileIndex;
 
 	UPROPERTY(EditAnyWhere)
-	UStaticMeshComponent* CurrentSelectedTile;
+	UStaticMeshComponent* TileSelected;
 
 	ATileBase* Map[MAX_MAP_GRID_SIZE][MAX_MAP_GRID_SIZE];
 
