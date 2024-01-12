@@ -4,8 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "NetBaseCharacter.h"
-#include "Camera/Cameracomponent.h"
-#include "Gameframework/SpringArmComponent.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "NetAvatar.generated.h"
 
 /**
@@ -15,7 +16,7 @@ UCLASS()
 class ANetAvatar : public ANetBaseCharacter
 {
 	GENERATED_BODY()
-
+	
 public:
 
 	ANetAvatar();
@@ -26,11 +27,28 @@ public:
 	UPROPERTY(EditAnywhere)
 	USpringArmComponent* SpringArm;
 
-	UPROPERTY(VisibleAnywhere)
-	bool bHoldingRunKey;
+	UPROPERTY(BlueprintReadWrite)
+	float MovementScale;
 
 	virtual void BeginPlay() override;
-	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+private:
+	void MoveForward(float Amount);
+	void MoveRight(float Amount);
+
+
+	UFUNCTION()
+	void StartRunning();
+
+	UFUNCTION()
+	void StopRunning();
+
+	UPROPERTY()
+	float RunningSpeed;
+
+	UPROPERTY()
+	float WalkingSpeed;
 
 	UFUNCTION(Server, Reliable)
 	void ServerStartRunning();
@@ -38,11 +56,10 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerStopRunning();
 
-private:
-	void MoveForward(float Amount);
-	void MoveRight(float Amount);
-	void PressedRun();
-	void ReleasedRun();
-	void UpdateMovementParams();
-	
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_IsRunning)
+	bool bIsRunning;
+
+	UFUNCTION()
+	void OnRep_IsRunning();
+
 };

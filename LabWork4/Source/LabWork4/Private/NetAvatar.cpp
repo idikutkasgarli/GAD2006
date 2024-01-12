@@ -2,9 +2,13 @@
 
 
 #include "NetAvatar.h"
-#include "GameFrameWork/CharacterMovementComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
-ANetAvatar::ANetAvatar()
+ANetAvatar::ANetAvatar():
+	RunningSpeed(600.0f),
+	WalkingSpeed(300.0f),
+	bIsRunning(false),
+	MovementScale(1.0f)
 {
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
@@ -21,20 +25,27 @@ void ANetAvatar::BeginPlay()
 	SpringArm->bUsePawnControlRotation = true;
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
-	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+}
+
+void ANetAvatar::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ANetAvatar, bIsRunning);
 }
 
 void ANetAvatar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+
 	PlayerInputComponent->BindAxis("Turn", this, &ACharacter::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("Lookup", this, &ACharacter::AddControllerPitchInput);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ANetAvatar::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ANetAvatar::MoveRight);
-	PlayerInputComponent->BindAction("Run", EInputEvent::IE_Pressed, this, &ANetAvatar::PressedRun);
-	PlayerInputComponent->BindAction("Run", EInputEvent::IE_Released, this, &ANetAvatar::ReleasedRun);
+
+	PlayerInputComponent->BindAction("Run", EInputEvent::IE_Pressed, this, &ANetAvatar::StartRunning);
+	PlayerInputComponent->BindAction("Run", EInputEvent::IE_Released, this, &ANetAvatar::StopRunning);
 
 }
 
@@ -43,7 +54,8 @@ void ANetAvatar::MoveForward(float Scale)
 	FRotator Rotation = GetController()->GetControlRotation();
 	FRotator YawRotation(0.0f, Rotation.Yaw, 0.0f);
 	FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	AddMovementInput(ForwardDirection, Scale);
+	AddMovementInput(ForwardDirection, MovementScale * Scale);
+
 }
 
 void ANetAvatar::MoveRight(float Scale)
@@ -51,38 +63,15 @@ void ANetAvatar::MoveRight(float Scale)
 	FRotator Rotation = GetController()->GetControlRotation();
 	FRotator YawRotation(0.0f, Rotation.Yaw, 0.0f);
 	FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-	AddMovementInput(ForwardDirection, Scale);
+	AddMovementInput(ForwardDirection, MovementScale * Scale);
 }
 
-
-void ANetAvatar::UpdateMovementParams()
-{
-	if (bHoldingRunKey)
-	{
-		GetCharacterMovement()->MaxWalkSpeed = 600.0f;
-	}
-	else
-	{
-		GetCharacterMovement()->MaxWalkSpeed = 300.0f;
-	}
-}
-
-void ANetAvatar::ServerStartRunning_Implementation()
-{
-	PressedRun();
-}
-
-void ANetAvatar::ServerStopRunning_Implementation()
-{
-	ReleasedRun();
-}
-
-void ANetAvatar::PressedRun()
+void ANetAvatar::StartRunning()
 {
 	if (HasAuthority())
 	{
-		bHoldingRunKey = true;
-		UpdateMovementParams();
+		bIsRunning = true;
+		OnRep_IsRunning();
 	}
 	else
 	{
@@ -90,15 +79,41 @@ void ANetAvatar::PressedRun()
 	}
 }
 
-void ANetAvatar::ReleasedRun()
+void ANetAvatar::StopRunning()
 {
 	if (HasAuthority())
 	{
-		bHoldingRunKey = false;
-		UpdateMovementParams();
+		bIsRunning = false;
+		OnRep_IsRunning();
 	}
 	else
 	{
 		ServerStopRunning();
 	}
 }
+
+void ANetAvatar::ServerStartRunning_Implementation()
+{
+	StartRunning();
+}
+
+void ANetAvatar::ServerStopRunning_Implementation()
+{
+	StopRunning();
+}
+
+void ANetAvatar::OnRep_IsRunning()
+{
+	if (bIsRunning)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = RunningSpeed;
+	}
+	else
+	{
+		GetCharacterMovement()->MaxWalkSpeed = WalkingSpeed;
+	}
+}
+
+
+
+
